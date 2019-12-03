@@ -4,3 +4,4 @@
 target
 *assignment.sbt
 *.class
+.metals
