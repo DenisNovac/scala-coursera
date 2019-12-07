@@ -1,6 +1,7 @@
 *~
 .idea
 .code
+.vscode
 target
 *assignment.sbt
 *.class
