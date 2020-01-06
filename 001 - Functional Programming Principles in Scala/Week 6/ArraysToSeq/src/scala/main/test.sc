@@ -34,25 +34,21 @@ object test {
 
   val M = 5
   val N = 10
-  (1 until M) flatMap (x => (5 to N) map (y => (x,y)))
-
-
+  (1 until M) flatMap (x => (5 to N) map (y => (x, y)))
 
 
   /*def scalarProduct(xs: Vector[Double], ys: Vector[Double]): Double =
     (xs zip ys).map(xy => xy._1 * xy._2).sum*/
 
-  def scalarProduct(xs: Vector[Double], ys:Vector[Double]): Double =
-    (xs zip ys).map{ case (x,y) => x * y}.sum
+  def scalarProduct(xs: Vector[Double], ys: Vector[Double]): Double =
+    (xs zip ys).map { case (x, y) => x * y }.sum
 
 
   val n = 4
-  val del: Range = 2 until  n
-  !del.exists(i=> (n>0) & (n%i)==0 )
-
-
-
-
-
+  val del: Range = 2 until n
+  !del.exists(i => (n > 0) & (n % i) == 0)
 
 }
+
+
+
