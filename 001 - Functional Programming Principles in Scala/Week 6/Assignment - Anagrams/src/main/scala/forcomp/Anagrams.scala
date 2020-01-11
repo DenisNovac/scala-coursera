@@ -2,6 +2,8 @@ package forcomp
 
 import forcomp.Anagrams.dictionaryByOccurrences
 
+import scala.annotation.tailrec
+
 object Anagrams extends AnagramsInterface {
 
   /** A word is simply a `String`. */
@@ -66,13 +68,13 @@ object Anagrams extends AnagramsInterface {
    */
 
   lazy val dictionaryByOccurrences: Map[Occurrences, List[Word]] =
-    dictionary.groupBy((w: Word) => wordOccurrences(w))
-
-
+    dictionary.groupBy((w: Word) => wordOccurrences(w)) withDefaultValue List()
 
 
   /** Returns all the anagrams of a given word. */
   def wordAnagrams(word: Word): List[Word] = dictionaryByOccurrences(wordOccurrences(word))
+
+
 
   /** Returns the list of all subsets of the occurrence list.
    *  This includes the occurrence itself, i.e. `List(('k', 1), ('o', 1))`
@@ -100,14 +102,15 @@ object Anagrams extends AnagramsInterface {
 
   // вычислить подсеты каждого сета отдельно
   // перечислить их комбинации
-
   def combinations(occurrences: Occurrences): List[Occurrences] = {
     val variances = subsetsForOccurrences(occurrences)
     val flat = variances.flatten   // List((a,1), (a,2), (b,1), (b,2))
-    val all = flat.toSet.subsets().map(_.toList).toList  // все возможные комбинации вместе с дубликатами вроде List((a,1), (a,2)) и List((a,1), (a,2), (b,1), (b,2))
-    all.filterNot((o: Occurrences) => containsDub(o))  // прогоняем через фильтр и отесиваем бубликаты
-  }
+    //val all = flat.toSet.subsets().map(_.toList).toList  // все возможные комбинации вместе с дубликатами вроде List((a,1), (a,2)) и List((a,1), (a,2), (b,1), (b,2))
+    //val all = flat.combinations(2).toList ::: flat.combinations(1).toList ::: List(Nil)
+    val all = List(Nil) ::: (for (n <- 1 until flat.length) yield flat.combinations(n).toList).flatten.toList
 
+    all.filterNot((o: Occurrences) => containsDub(o)) map (_.sorted)// прогоняем через фильтр, отсеиваем дубликаты и сортируем
+  }
 
   def subsetsForOccurrences(occurrences: Occurrences): List[Occurrences] =
     /**
@@ -120,14 +123,12 @@ object Anagrams extends AnagramsInterface {
       case x :: xs => subset(x) :: subsetsForOccurrences(xs)
     }
 
-
   // просчитывает все подсеты для одного кортежа
   // a -> 2 даст a->2, a->1
   def subset(occurence: (Char, Int)): Occurrences = {
     for (i <- 1 to occurence._2)
       yield occurence._1->i
     }.toList
-
 
   def containsDub(combination: Occurrences): Boolean =
     /**
@@ -151,7 +152,19 @@ object Anagrams extends AnagramsInterface {
    *  Note: the resulting value is an occurrence - meaning it is sorted
    *  and has no zero-entries.
    */
-  def subtract(x: Occurrences, y: Occurrences): Occurrences = ???
+  def subtract(x: Occurrences, y: Occurrences): Occurrences =
+    // проверка if нужна, чтобы не пытаться вычитать из x те элементы, которых нет в y (y.filter упадёт)
+    x map ((t:(Char, Int)) => if(y.exists(_._1 == t._1)) ((t._1 -> (t._2 - y.filter(_._1 == t._1).head._2))) else t) filterNot(_._2 == 0)
+
+  @tailrec
+  def isSubset(x: Occurrences, sub: Occurrences): Boolean =
+    if (x.isEmpty & sub.nonEmpty) false  // не бывает подсетов у пустоты
+    else
+      sub match {
+        case Nil => true
+        case y :: Nil => x.exists((t:(Char, Int)) => (t._1 == y._1) & (t._2 >= y._2) )
+        case y :: ys => if (x.exists((t:(Char, Int)) => (t._1 == y._1) & (t._2 >= y._2) )) isSubset(x, ys) else false
+      }
 
   /** Returns a list of all anagram sentences of the given sentence.
    *
@@ -193,7 +206,35 @@ object Anagrams extends AnagramsInterface {
    *
    *  Note: There is only one anagram of an empty sentence.
    */
-  def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
+  // List[(Occurrences, List[Word])]
+  def sentenceAnagrams(sentence: Sentence): List[Sentence] = {
+    if (sentence.isEmpty) List(List())
+    else {
+
+      val occ = sentenceOccurrences(sentence) // List((e,1), (i,1), (l,2), (n,1), (r,1), (u,2), (x,1), (z,1))
+      val dict: List[(Occurrences, List[Word])] = getDictionaryFromOccurences(occ)
+
+      val words = for (d <- dict) yield d._2  // просто все слова
+
+      // все комбинации слов длиной (от 1 слова до 4 в массиве)
+      val all_com =
+        (for (n <- 1 to 4) yield words.flatten.combinations(n).toList.filter(sentenceOccurrences(_) == occ))
+          .toList.flatten
+
+      (for (combination <- all_com) yield combination.permutations.toList).flatten
+
+      // permutations - перестановки. Комбинации включают только уникальные вхождения,
+      // а перестановки - уникальные вхождения по индексам
+    }
+  }
+
+
+  def getDictionaryFromOccurences(occ: Occurrences): List[(Occurrences, List[Word])] = {for {
+      c <- combinations(occ)
+  } yield c -> dictionaryByOccurrences(c) }.filter(_._2.nonEmpty)
+
+
+  //def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
 }
 
 object Dictionary {
