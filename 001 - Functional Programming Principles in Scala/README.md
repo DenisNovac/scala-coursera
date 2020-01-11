@@ -46,3 +46,10 @@
 - 5.7 - A Larger Equational Proof on Lists
 
 ### Week 6 - Collections
+
+- 6.1 - Other Collections
+- 6.2 - Combinatorial Search and For-Expressions
+- 6.3 - Combinatorial Search Example
+- 6.4 - Maps
+- 6.5 - Putting the Pieces Together
+- Conclusion
