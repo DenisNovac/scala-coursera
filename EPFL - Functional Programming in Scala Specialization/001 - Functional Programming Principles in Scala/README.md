@@ -1,3 +1,5 @@
+All course rights: https://www.coursera.org/learn/progfun1
+
 # Содержание курса
 
 ### Week 1 - Getting Started + Functions & Evaluation
