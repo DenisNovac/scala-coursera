@@ -19,12 +19,19 @@ class Getter(url: String, depth: Int) extends Actor {
   // Имплисивные контекст и экзекьютор, необходимые для Future
   implicit val exec: ExecutionContextExecutor = context.dispatcher
 
-  val future: Future[String] = WebClient.get(url)
+  // Этот метод можно переписать в тесте для смены клиента
+  def client: WebClient = AsyncWebClient
+
+  // клиент используется здесь
+  val future: Future[String] = client.get(url)
+
+
+
   future.pipeTo(self)  // Отправить самому себе результат фьючи
 
   override def receive: Receive = {  // Сюда результат прилетит после отправки
     case body: String =>
-      for (link <- WebClient.findLinks(body))
+      for (link <- AsyncWebClient.findLinks(body))
         context.parent ! Controller.Check(link, depth)  // вернуть результат родителю
       stop()
     case Status.Failure => stop()

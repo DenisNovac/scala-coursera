@@ -7,11 +7,17 @@ import org.jsoup.Jsoup
 import scala.jdk.CollectionConverters._
 
 
-object WebClient {
-  case class BadStatus(i: Int) extends Throwable
+trait WebClient {
+  def get(url: String)(implicit exec: Executor): Future[String]
+}
+
+case class BadStatus(i: Int) extends Throwable
+
+object AsyncWebClient extends WebClient {
+
   private val client = new AsyncHttpClient
 
-  def get(url: String)(implicit exec: Executor): Future[String] = {
+  override def get(url: String)(implicit exec: Executor): Future[String] = {
     val f = client.prepareGet(url).execute()  // ListenableFuture
     val p = Promise[String]()  // для заполнения результатом асинхронного листенера
     f.addListener(new Runnable {
