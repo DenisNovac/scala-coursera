@@ -26,10 +26,11 @@ class Getter(url: String, depth: Int) extends Actor {
   val future: Future[String] = client.get(url)
 
 
-
+  // Future.Failed не пересылается после получения
   future.pipeTo(self)  // Отправить самому себе результат фьючи
 
   override def receive: Receive = {  // Сюда результат прилетит после отправки
+    case "ACTOR FAKE WEB CLIENT GENERATED FAILURE" => stop()  // специальная ошибка-костыль
     case body: String =>
       for (link <- AsyncWebClient.findLinks(body))
         context.parent ! Controller.Check(link, depth)  // вернуть результат родителю

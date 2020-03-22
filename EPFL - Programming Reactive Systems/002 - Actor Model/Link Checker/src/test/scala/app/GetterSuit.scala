@@ -19,6 +19,7 @@ object GetterSuit {
         |  <head><title>Page 1</title></head>
         |  <body>
         |    <h1>A Link</h1>
+        |    <a href="http://rkuhn.info/2">click here</a>
         |  </body>
         |</html>""".stripMargin
   )
@@ -31,7 +32,10 @@ object GetterSuit {
   object FakeWebClient extends WebClient {
     override def get(url: String)(implicit exec: Executor): Future[String] =
       bodies.get(url) match {
-        case None       => Future.failed(BadStatus(404))
+        case None =>
+          Future.successful("ACTOR FAKE WEB CLIENT GENERATED FAILURE")
+        //Future.failed(BadStatus(404))  // Failed не пересылается
+
         case Some(body) => Future.successful(body)
       }
   }
@@ -59,7 +63,7 @@ object GetterSuit {
 
 /** Тестирующий зонд */
 class GetterSpec
-  extends TestKit(ActorSystem("TestSys"))
+    extends TestKit(ActorSystem("TestSys"))
     with ImplicitSender
     with AnyWordSpecLike
     with Matchers
@@ -78,6 +82,14 @@ class GetterSpec
 
       for (link <- links(firstLink))
         expectMsg(Controller.Check(link, 2))
+      expectMsg(Getter.Done())
+    }
+
+    "properly finish in case of errors" in {
+      val getter = system.actorOf(
+        Props(new StepParent(fakeGetter("unknown", 2), testActor)),
+        "wrongLink"
+      )
       expectMsg(Getter.Done())
     }
   }
