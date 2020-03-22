@@ -7,3 +7,6 @@ target
 *.class
 .metals
 submission.jar
+.attach_pid*
+
+

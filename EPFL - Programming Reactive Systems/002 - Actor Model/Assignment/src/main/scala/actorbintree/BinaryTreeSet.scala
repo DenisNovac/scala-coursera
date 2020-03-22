@@ -39,6 +39,11 @@ object BinaryTreeSet {
     */
   case class Remove(requester: ActorRef, id: Int, elem: Int) extends Operation
 
+  /**
+    * Эту штуку я добавил сам для чтения из актора его листа
+    */
+  case class Get(requester: ActorRef, id: Int, elem: Int) extends Operation
+
   /** Request to perform garbage collection */
   case object GC
 
@@ -78,6 +83,9 @@ class BinaryTreeSet extends Actor {
 
     case Remove(req, id, elem) =>
       createRoot ! Remove(req, id, elem)
+
+    case Get(req, id, elem) =>
+      createRoot ! Get(req, id, elem)
 
     case GC => ???
 
@@ -133,7 +141,8 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean)
           if (subtrees.contains(Right))
             subtrees(Right) ! Insert(req, id, e)
           else {
-            subtrees += (Right -> context.actorOf(props(e, initiallyRemoved = false)))
+            val actor = context.actorOf(props(e, initiallyRemoved = false))
+            subtrees += (Right -> actor)
             req ! OperationFinished(id)
           }
 
@@ -141,7 +150,8 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean)
           if (subtrees.contains(Left))
             subtrees(Left) ! Insert(req, id, e)
           else {
-            subtrees += Left -> context.actorOf(props(e, initiallyRemoved = false))
+            val actor = context.actorOf(props(e, initiallyRemoved = false))
+            subtrees += (Left -> actor)
             req ! OperationFinished(id)
           }
 
@@ -169,6 +179,11 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean)
           subtrees(Left) ! Remove(req, id, e)
         case e => req ! OperationFinished(id)
       }
+
+    case Get(req, id, e) =>
+      if (subtrees.contains(Right)) subtrees(Right) ! Get(req, id, e)
+      if (subtrees.contains(Left)) subtrees(Left) ! Get(req, id, e)
+      req ! subtrees
   }
 
   // optional
