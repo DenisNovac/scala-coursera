@@ -195,9 +195,35 @@ object Main extends App {
 Опции делают следующее:
 
 - `Dakka.actor.provider=akka.cluster.ClusterActorRefProvider` - заставляет запускать акторы в контексте кластера. `context` получает новые методы;
-- `Dakka.cluster.min-nr-of-members=2` - Кластер не запустится, пока в нём не будет хотя бы двух членов
+- `Dakka.cluster.min-nr-of-members=2` - Кластер не запустится, пока в нём не будет хотя бы двух членов:
+
+```log
+[INFO] [akkaMemberChanged][03/26/2020 17:22:03.909] [Cluster-akka.actor.internal-dispatcher-6] [Cluster(akka://Cluster)] Cluster Node [akka://Cluster@127.0.1.1:25520] - Node [akka://Cluster@127.0.1.1:25520] is JOINING itself (with roles [dc-default]) and forming new cluster
+[INFO] [03/26/2020 17:22:03.913] [Cluster-akka.actor.internal-dispatcher-6] [Cluster(akka://Cluster)] Cluster Node [akka://Cluster@127.0.1.1:25520] - is the new leader among reachable nodes (more leaders may exist)
+[INFO] [akkaMemberChanged][03/26/2020 17:22:13.861] [Cluster-akka.actor.internal-dispatcher-6] [Cluster(akka://Cluster)] Cluster Node [akka://Cluster@127.0.1.1:25520] - Node [akka://Cluster@127.0.1.1:25521] is JOINING, roles [dc-default]
+
+**Два актора в кластере появилось - переходим в активный режим. Акторы-ноды запускаются и готовы работать **
+
+[INFO] [akkaMemberChanged][03/26/2020 17:22:14.017] [Cluster-akka.actor.internal-dispatcher-2] [Cluster(akka://Cluster)] Cluster Node [akka://Cluster@127.0.1.1:25520] - Leader is moving node [akka://Cluster@127.0.1.1:25520] to [Up]
+[INFO] [akkaMemberChanged][03/26/2020 17:22:14.017] [Cluster-akka.actor.internal-dispatcher-2] [Cluster(akka://Cluster)] Cluster Node [akka://Cluster@127.0.1.1:25520] - Leader is moving node [akka://Cluster@127.0.1.1:25521] to [Up]
+```
+
+
 - `Dakka.remote.netty.tcp.port=0` - Рандомный порт при старте у воркера
-- `Dakka.cluster.auto-down=on` - 
+- `Dakka.cluster.auto-down=on` - Не ждать, пока нода станет доступна, а сразу считать её погашенной
+
+При этом ClusterWorker имеет такое поведение:
+
+```scala
+ override def receive: Receive = {
+    case ClusterEvent.MemberRemoved(m, _) =>
+      log.info(s"Got new member removed message: $m")
+      if (m.address == main) context.stop(self)
+  }
+```
+
+Это значит, что как только главная нода ушла - он гасит себя мгновенно (переводя её в Down и получая MemberRemoved, см. следующий файл).
+
 - `Dakka.remote.artery.canonical.port=25521` - Сменить локальный сервер воркера (дефолтный 25520 будет занят)
 
 
@@ -245,7 +271,7 @@ var notExited = true
 
 ```scala
 def receive: Receive = {
-  
+
   case Check(url, depth) if url.nonEmpty & depth > -1 =>
     log.debug("{} checking {}", depth, url)
     if (!cache(url) && depth > 0)
