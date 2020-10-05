@@ -10,7 +10,8 @@ object SudokuIO {
       (for  (elem <- row) 
         yield {
           (printItems.map (item => if ((elem & printItems.toSet).contains(item)) item.toString else " ")).mkString("")
-        }).mkString("| ", " | ", " |")
+        }
+      ).mkString("| ", " | ", " |")
     }
     (for  (subRow <- 0 until 3)  yield printSubRow(subRow)).mkString("\n")
   }
